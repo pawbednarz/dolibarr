@@ -1268,6 +1268,59 @@ class Website extends CommonObject
 
 
 	/**
+	 * Analyze the PHP code embedded into the files extracted from a website template (.zip) before they are deployed
+	 * into the directory of the web site (a directory whose .php files are executed by the web server).
+	 *
+	 * Without this, a user allowed to import a website template could deploy any PHP file (for example a
+	 * styles.css.php, that is executed by the public page public/website/styles.css.php), bypassing the analysis
+	 * made by checkPHPCode() when the same content is saved from the web site editor.
+	 *
+	 * @param	string		$dirtoscan		Directory to scan (the 'containers' directory extracted from the zip)
+	 * @return	int							Return integer <0 if some code is not allowed, >=0 if OK
+	 * @see checkPHPCode()
+	 */
+	protected function checkPhpCodeOfImportedFiles($dirtoscan)
+	{
+		include_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
+		include_once DOL_DOCUMENT_ROOT.'/core/lib/website.lib.php';
+		include_once DOL_DOCUMENT_ROOT.'/core/lib/website2.lib.php';
+
+		if (!dol_is_dir($dirtoscan)) {
+			return 0;
+		}
+
+		$error = 0;
+
+		$listoffiles = dol_dir_list($dirtoscan, 'files', 1);
+		foreach ($listoffiles as $filefound) {
+			// Only files that may be interpreted by the web server need to be analyzed, but a file with any other
+			// extension may also be included by a page, so we analyze the content of all the deployed files.
+			$content = @file_get_contents($filefound['fullname']);
+			if ($content === false) {
+				continue;
+			}
+
+			$phpfullcodestringold = '';
+			$phpfullcodestring = dolKeepOnlyPhpCode($content);
+			if (empty($phpfullcodestring)) {
+				continue;
+			}
+
+			// checkPHPCode() takes its parameters by reference and outputs the reason with setEventMessages()
+			if (checkPHPCode($phpfullcodestringold, $phpfullcodestring)) {
+				$this->error = 'Error: the file '.$filefound['relativename'].' of the website template contains PHP code that is not allowed.';
+				$this->errors[] = $this->error;
+				dol_syslog('Website::checkPhpCodeOfImportedFiles refused file '.$filefound['fullname'], LOG_WARNING);
+				$error++;
+				break;
+			}
+		}
+
+		return $error ? -1 : 0;
+	}
+
+
+	/**
 	 * Open a zip with all data of web site and load it into database.
 	 *
 	 * @param 	string		$pathtofile		Full path of zip file
@@ -1317,6 +1370,14 @@ class Website extends CommonObject
 		$arrayreplacement['__LOGO_MINI_KEY__'] = $this->db->escape($mysoc->logo_mini);
 		$arrayreplacement['__LOGO_KEY__'] = $this->db->escape($mysoc->logo);
 
+
+		// Security: the files of the 'containers' directory are deployed into the directory of the web site and are
+		// executed by the web server (see public/website/index.php and public/website/styles.css.php), so the PHP code
+		// they embed must pass the same analysis than the PHP code saved from the web site editor.
+		$resultcheckphp = $this->checkPhpCodeOfImportedFiles($conf->website->dir_temp.'/'.$object->ref.'/containers');
+		if ($resultcheckphp < 0) {
+			return -10;
+		}
 
 		// Copy containers directory
 		dolCopyDir($conf->website->dir_temp.'/'.$object->ref.'/containers', $conf->website->dir_output.'/'.$object->ref, '0', 1); // Overwrite if exists

@@ -830,29 +830,14 @@ function showWebsiteTemplates(Website $website, int $refresh)
 
 	$colspan = 2;
 
+	// Note: the returned message is only informative here. The effective blocking is done server side, into the
+	// 'importsiteconfirm' action, by calling checkWebsiteTemplateImportAllowed() again.
+	$reasonimportisdisabled = checkWebsiteTemplateImportAllowed();
+
 	$importButtonIsDisabled = 0;
-
-	global $dolibarr_website_allow_custom_php;
-	if (!empty($dolibarr_website_allow_custom_php) && $dolibarr_website_allow_custom_php == 1) {
-		$notdisabledsystemfunction = '';
-		$systemfunctions = array("exec", "passthru", "shell_exec", "system", "popen", "proc_open");
-		foreach ($systemfunctions as $systemfunction) {
-			// @phpstan-ignore-next-line
-			if (function_exists($systemfunction)) {
-				$notdisabledsystemfunction .= ($notdisabledsystemfunction ? ', ' : '').$systemfunction;
-			}
-		}
-		if ($notdisabledsystemfunction) {
-			print '<div class="warning">';
-			print $langs->trans("ImportOfWebsiteTemplateIncludingPHPIsAllowedIf", 'warning');
-			print '</div>';
-
-			$importButtonIsDisabled = 1;
-		}
-	}
-	if (empty($dolibarr_website_allow_custom_php)) {
+	if ($reasonimportisdisabled) {
 		print '<div class="warning">';
-		print $langs->trans("ImportOfWebsiteTemplateIncludingPHPIsDisabled", 'warning');
+		print $reasonimportisdisabled;
 		print '</div>';
 
 		$importButtonIsDisabled = 1;
@@ -961,6 +946,49 @@ function showWebsiteTemplates(Website $website, int $refresh)
 
 	print '</td></tr>';
 	print '</table>';
+}
+
+
+/**
+ * Check that the current user is allowed to import a website template (a .zip archive).
+ *
+ * Importing a website template deploys files (containers, styles.css.php, javascript.js.php, ...) into the
+ * directory of the web site, and those files are executed by the web server (see public/website/index.php and
+ * public/website/styles.css.php). So importing a template is equivalent to adding dynamic PHP content and it
+ * must be protected by the same rules than the ones applied by checkPHPCode().
+ *
+ * @return	string		Empty string if the import is allowed, else the translated reason why it is not allowed.
+ * @see checkPHPCode(), showWebsiteTemplates()
+ */
+function checkWebsiteTemplateImportAllowed()
+{
+	global $langs, $user;
+
+	global $dolibarr_website_allow_custom_php;
+
+	if (empty($dolibarr_website_allow_custom_php)) {		// Case of $dolibarr_website_allow_custom_php = 0
+		return $langs->trans("ImportOfWebsiteTemplateIncludingPHPIsDisabled", 'warning');
+	}
+
+	if ($dolibarr_website_allow_custom_php == 1) {			// Case of $dolibarr_website_allow_custom_php = 1
+		$notdisabledsystemfunction = '';
+		$systemfunctions = array("exec", "passthru", "shell_exec", "system", "popen", "proc_open");
+		foreach ($systemfunctions as $systemfunction) {
+			// @phpstan-ignore-next-line
+			if (function_exists($systemfunction)) {
+				$notdisabledsystemfunction .= ($notdisabledsystemfunction ? ', ' : '').$systemfunction;
+			}
+		}
+		if ($notdisabledsystemfunction) {
+			return $langs->trans("ImportOfWebsiteTemplateIncludingPHPIsAllowedIf", 'warning');
+		}
+	}
+
+	if (!is_object($user) || !$user->hasRight('website', 'writephp')) {
+		return $langs->trans("NotAllowedToAddDynamicContent");
+	}
+
+	return '';
 }
 
 

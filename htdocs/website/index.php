@@ -2668,6 +2668,17 @@ if ($action == 'importsiteconfirm' && $usercanedit) {
 		$allowimportsite = false;
 	}
 
+	// A website template deploys .php files into the directory of the web site and those files are executed by the
+	// web server. So the import must be protected by the same rules than the ones used to add dynamic PHP content.
+	// Note: showWebsiteTemplates() only grays the button, so this server side check is the effective one.
+	$reasonimportisdisabled = '';
+	if ($allowimportsite) {
+		$reasonimportisdisabled = checkWebsiteTemplateImportAllowed();
+		if ($reasonimportisdisabled) {
+			$allowimportsite = false;
+		}
+	}
+
 	if ($allowimportsite) {
 		if (empty($_FILES) && !GETPOSTISSET('templateuserfile')) {
 			setEventMessages($langs->trans("ErrorFieldRequired", $langs->transnoentitiesnoconv("File")), null, 'errors');
@@ -2753,6 +2764,9 @@ if ($action == 'importsiteconfirm' && $usercanedit) {
 				}
 			}
 		}
+	} elseif ($reasonimportisdisabled) {
+		setEventMessages($reasonimportisdisabled, null, 'errors');
+		$action = 'importsite';
 	} else {
 		if (getDolGlobalString('MAIN_MESSAGE_INSTALL_MODULES_DISABLED_CONTACT_US')) {
 			// Show clean corporate message

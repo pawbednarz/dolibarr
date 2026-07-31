@@ -458,6 +458,16 @@ class FileUpload
 					$file->name = $fileNameWithPrefix;
 				}
 
+				// Security:
+				// Disallow file with some extensions. We rename them.
+				// Because if we put the documents directory into a directory inside web root (very bad), this allows
+				// to execute on demand arbitrary code. Note that the multipart branch below relies on
+				// dol_move_uploaded_file() that makes the same protection, but the raw write branches (append mode and
+				// non-multipart PUT mode) write the file themselves so the protection must be done here.
+				if (isAFileWithExecutableContent($file->name) && !getDolGlobalString('MAIN_DOCUMENT_IS_OUTSIDE_WEBROOT_SO_NOEXE_NOT_REQUIRED')) {
+					$file->name .= '.noexe';
+				}
+
 				$file_path = dol_sanitizePathName($this->options['upload_dir']).dol_sanitizeFileName($file->name);
 				$append_file = !$this->options['discard_aborted_uploads'] && dol_is_file($file_path) && $file->size > dol_filesize($file_path);
 
