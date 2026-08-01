@@ -152,6 +152,13 @@ class ExpenseReports extends DolibarrApi
 		if ($user_ids) {
 			$sql .= " AND t.fk_user_author IN (".$this->db->sanitize($user_ids).")";
 		}
+		// 'lire' is "yours and your subordinates"; 'readall' is the separate right for everybody's.
+		// $user_ids above is a caller supplied filter, not a restriction, so the scope must be applied here
+		// like get() does through _checkAccessToResource() and like Holidays::index() does.
+		if (!DolibarrApiAccess::$user->hasRight('expensereport', 'readall')) {
+			$childids = DolibarrApiAccess::$user->getAllChildIds(1);
+			$sql .= " AND t.fk_user_author IN (".$this->db->sanitize(implode(',', $childids)).")";
+		}
 
 		// Add sql filters
 		if ($sqlfilters) {
@@ -873,6 +880,11 @@ class ExpenseReports extends DolibarrApi
 		$sql = "SELECT t.rowid FROM " . MAIN_DB_PREFIX . "payment_expensereport as t, ".MAIN_DB_PREFIX."expensereport as e";
 		$sql .= " WHERE e.rowid = t.fk_expensereport";
 		$sql .= ' AND e.entity IN ('.getEntity('expensereport').')';
+		// A payment inherits the visibility of the expense report it belongs to.
+		if (!DolibarrApiAccess::$user->hasRight('expensereport', 'readall')) {
+			$childids = DolibarrApiAccess::$user->getAllChildIds(1);
+			$sql .= " AND e.fk_user_author IN (".$this->db->sanitize(implode(',', $childids)).")";
+		}
 
 		$sql .= $this->db->order($sortfield, $sortorder);
 		if ($limit) {
@@ -928,6 +940,8 @@ class ExpenseReports extends DolibarrApi
 			throw new RestException(404, 'paymentExpenseReport not found');
 		}
 
+		$this->_checkAccessToPaymentParent($paymentExpenseReport->fk_expensereport);
+
 		return $this->_cleanObjectDatas($paymentExpenseReport);
 	}
 
@@ -950,6 +964,8 @@ class ExpenseReports extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('expensereport', 'creer')) {
 			throw new RestException(403);
 		}
+		$this->_checkAccessToPaymentParent($id);
+
 		// Check mandatory fields
 		$result = $this->_validatepayment($request_data);
 
@@ -1001,6 +1017,8 @@ class ExpenseReports extends DolibarrApi
 		if (!$result) {
 			throw new RestException(404, 'payment of expense report not found');
 		}
+
+		$this->_checkAccessToPaymentParent($paymentExpenseReport->fk_expensereport);
 
 		foreach ($request_data as $field => $value) {
 			if ($field == 'id') {
@@ -1104,6 +1122,28 @@ class ExpenseReports extends DolibarrApi
 		unset($object->note); // We already use note_public and note_pricate
 
 		return $object;
+	}
+
+	/**
+	 * Check the caller may see the expense report a payment belongs to.
+	 *
+	 * A payment carries no visibility of its own: PaymentExpenseReport::fetch() selects on the row id
+	 * alone, with no entity and no author. The routes that handle payments must therefore apply the
+	 * check of the parent record, the same one get() applies.
+	 *
+	 * @param	int		$expensereportid	Id of the parent expense report
+	 * @return	void
+	 * @throws	RestException
+	 */
+	private function _checkAccessToPaymentParent($expensereportid)
+	{
+		$parent = new ExpenseReport($this->db);
+		if ($parent->fetch($expensereportid) <= 0) {
+			throw new RestException(404, 'Expense report not found');
+		}
+		if (!DolibarrApi::_checkAccessToResource('expensereport', $parent)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login);
+		}
 	}
 
 	/**

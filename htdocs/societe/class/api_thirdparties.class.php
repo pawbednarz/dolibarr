@@ -1657,6 +1657,9 @@ class Thirdparties extends DolibarrApi
 		if ($this->company->fetch($id) <= 0) {
 			throw new RestException(404, 'Error creating Thirdparty Notification, Thirdparty doesn\'t exists');
 		}
+		if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login.' on this thirdparty');
+		}
 		$notification = new Notify($this->db);
 
 		$notification->socid = $id;
@@ -1719,6 +1722,9 @@ class Thirdparties extends DolibarrApi
 		}
 		if ($this->company->fetch($id) <= 0) {
 			throw new RestException(404, 'Error creating Thirdparty Notification, Thirdparty doesn\'t exists');
+		}
+		if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login.' on this thirdparty');
 		}
 		$notification = new Notify($this->db);
 		$notification->socid = $id;
@@ -1787,6 +1793,9 @@ class Thirdparties extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('societe', 'creer')) {
 			throw new RestException(403);
 		}
+		if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login.' on this thirdparty');
+		}
 
 		$notification = new Notify($this->db);
 
@@ -1825,6 +1834,9 @@ class Thirdparties extends DolibarrApi
 		}
 		if ($this->company->fetch($id) <= 0) {
 			throw new RestException(404, 'Error creating Company Notification, Company doesn\'t exists');
+		}
+		if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login.' on this thirdparty');
 		}
 		$notification = new Notify($this->db);
 
@@ -1959,6 +1971,9 @@ class Thirdparties extends DolibarrApi
 		if ($this->company->fetch($id) <= 0) {
 			throw new RestException(404, 'Error creating Company Bank account, Company doesn\'t exists');
 		}
+		if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login.' on this thirdparty');
+		}
 		$account = new CompanyBankAccount($this->db);
 
 		$account->socid = $id;
@@ -2016,6 +2031,9 @@ class Thirdparties extends DolibarrApi
 		if ($this->company->fetch($id) <= 0) {
 			throw new RestException(404, 'Error creating Company Bank account, Company doesn\'t exists');
 		}
+		if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login.' on this thirdparty');
+		}
 		$account = new CompanyBankAccount($this->db);
 
 		// @phan-suppress-next-line PhanPluginSuspiciousParamPosition
@@ -2069,6 +2087,9 @@ class Thirdparties extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('societe', 'creer')) {
 			throw new RestException(403);
 		}
+		if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login.' on this thirdparty');
+		}
 
 		$account = new CompanyBankAccount($this->db);
 
@@ -2113,6 +2134,9 @@ class Thirdparties extends DolibarrApi
 
 		if (!DolibarrApiAccess::$user->hasRight('societe', 'creer')) {
 			throw new RestException(403);
+		}
+		if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login.' on this thirdparty');
 		}
 
 		$this->company->setDocModel(DolibarrApiAccess::$user, $model);
@@ -2332,6 +2356,9 @@ class Thirdparties extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('societe', 'creer')) {
 			throw new RestException(403);
 		}
+		if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login.' on this thirdparty');
+		}
 
 		if (!isset($request_data['site'])) {
 			throw new RestException(422, 'Unprocessable Entity: You must pass the site attribute in your request data !');
@@ -2399,6 +2426,9 @@ class Thirdparties extends DolibarrApi
 	{
 		if (!DolibarrApiAccess::$user->hasRight('societe', 'creer')) {
 			throw new RestException(403);
+		}
+		if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login.' on this thirdparty');
 		}
 
 		$sql = "SELECT rowid, fk_user_creat, date_creation FROM ".MAIN_DB_PREFIX."societe_account WHERE fk_soc = ".((int) $id)." AND site = '".$this->db->escape($site)."'";
@@ -2498,6 +2528,9 @@ class Thirdparties extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('societe', 'creer')) {
 			throw new RestException(403);
 		}
+		if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login.' on this thirdparty');
+		}
 
 		$sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."societe_account WHERE fk_soc = ".((int) $id)." AND site = '".$this->db->escape($site)."'";
 		$result = $this->db->query($sql);
@@ -2562,6 +2595,9 @@ class Thirdparties extends DolibarrApi
 		if (!DolibarrApiAccess::$user->hasRight('societe', 'creer')) {
 			throw new RestException(403);
 		}
+		if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login.' on this thirdparty');
+		}
 
 		$sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."societe_account WHERE fk_soc = ".((int) $id)." AND site = '".$this->db->escape($site)."'";
 		$result = $this->db->query($sql);
@@ -2598,6 +2634,9 @@ class Thirdparties extends DolibarrApi
 	{
 		if (!DolibarrApiAccess::$user->hasRight('societe', 'creer')) {
 			throw new RestException(403);
+		}
+		if (!DolibarrApi::_checkAccessToResource('societe', $id)) {
+			throw new RestException(403, 'Access not allowed for login '.DolibarrApiAccess::$user->login.' on this thirdparty');
 		}
 
 		/**
