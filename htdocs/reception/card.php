@@ -2576,7 +2576,11 @@ if ($action == 'create' && $permissiontoadd) {
 			$origin = 'supplier_order';
 		}
 
-		if ($origin_id > 0) {
+		// $origin may come from the URL (GETPOST('origin', 'alpha') keeps quotes, spaces and parenthesis), and it is
+		// used to forge a table name, so it must be reduced to a SQL identifier before being put into the request.
+		$tableoforigin = ($origin == 'supplier_order') ? 'commande_fournisseur' : preg_replace('/[^a-z0-9_]/i', '', $origin);
+
+		if ($origin_id > 0 && $tableoforigin !== '') {
 			$sql = "SELECT obj.rowid, obj.fk_product, obj.label, obj.description, obj.product_type as fk_product_type, obj.qty as qty_asked, obj.date_start, obj.date_end";
 			$sql .= ", ed.rowid as receptionline_id, ed.qty, ed.fk_reception as reception_id,  ed.fk_entrepot";
 			$sql .= ", e.rowid as reception_id, e.ref as reception_ref, e.date_creation, e.date_valid, e.date_delivery, e.date_reception";
@@ -2584,7 +2588,7 @@ if ($action == 'create' && $permissiontoadd) {
 			$sql .= ', p.description as product_desc';
 			$sql .= " FROM ".MAIN_DB_PREFIX."receptiondet_batch as ed";
 			$sql .= ", ".MAIN_DB_PREFIX."reception as e";
-			$sql .= ", ".MAIN_DB_PREFIX.(($origin == 'supplier_order') ? 'commande_fournisseur' : $origin)."det as obj";  // @phan-suppress-current-line SqlInjection
+			$sql .= ", ".MAIN_DB_PREFIX.$db->sanitize($tableoforigin)."det as obj";
 			$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."product as p ON obj.fk_product = p.rowid";
 			$sql .= " WHERE e.entity IN (".getEntity('reception').")";
 			$sql .= " AND obj.fk_commande = ".((int) $origin_id);
