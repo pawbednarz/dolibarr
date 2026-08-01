@@ -1425,14 +1425,18 @@ while ($i < $imaxinloop) {
 		}
 		// public note
 		if (!empty($arrayfields['c.note_public']['checked'])) {
-			print '<td class="center">'.$obj->note_public.'</td>';
+			print '<td class="sensiblehtmlcontent center">';
+			print '<div class="small lineheightsmall twolinesmax-normallineheight">'.dolPrintHTML(dolGetFirstLineOfText($obj->note_public, 5)).'</div>';
+			print '</td>';
 			if (!$i) {
 				$totalarray['nbfield']++;
 			}
 		}
 		// private note
 		if (!empty($arrayfields['c.note_private']['checked'])) {
-			print '<td class="center">'.$obj->note_private.'</td>';
+			print '<td class="sensiblehtmlcontent center">';
+			print '<div class="small lineheightsmall twolinesmax-normallineheight">'.dolPrintHTML(dolGetFirstLineOfText($obj->note_private, 5)).'</div>';
+			print '</td>';
 			if (!$i) {
 				$totalarray['nbfield']++;
 			}

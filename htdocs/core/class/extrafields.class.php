@@ -2665,7 +2665,9 @@ class ExtraFields
 		} elseif ($type == 'text') {
 			$value = '<div class="'.($cssview ? $cssview : 'shortmessagecut').'">'.dol_htmlentitiesbr($value).'</div>';
 		} elseif ($type == 'html') {
-			$value = dol_htmlentitiesbr($value);
+			// Note: dol_htmlentitiesbr() alone keeps the content untouched when it is already HTML, so the value
+			// (saved with the 'restricthtml' filter) must also be sanitized on output like any other rich text content.
+			$value = dolPrintHTML($value);
 		} elseif ($type == 'password') {
 			$value = dol_trunc(preg_replace('/./i', '*', $value), 8, 'right', 'UTF-8', 1);
 		} elseif ($type == 'stars') {

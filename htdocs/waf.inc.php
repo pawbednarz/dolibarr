@@ -203,7 +203,8 @@ function testSqlAndScriptInject($val, $type)
 	$inj += preg_match('/on(abort|after|animation|auxclick|before|blur|bounce|cancel|canplay|canplaythrough|change|click|close|content|contextmenu|cuechange|copy|cut)[a-z]*\s*=/i', $val);
 	$inj += preg_match('/on(dblclick|drag|drop|durationchange|emptied|end|ended|error|focus|focusin|focusout|formdata|gotpointercapture|hashchange|input|invalid)[a-z]*\s*=/i', $val);
 	$inj += preg_match('/on(key|load|lostpointercapture|mouse)[a-z]*\s*=/i', $val); // onmousexxx can be set on img or any html tag like <img title='...' onmouseover=alert(1)>
-	$inj += preg_match('/on(offline|online|pagehide|pageshow|pointer)[a-z]*\s*=/i', $val);
+	$inj += preg_match('/on(offline|online|page|pointer|slot)[a-z]*\s*=/i', $val);	// 'page' also covers onpagehide, onpageshow, onpagereveal and onpageswap
+	$inj += preg_match('/on(webkit|moz|ms)[a-z]*\s*=/i', $val);		// vendor prefixed events like onwebkitanimationiteration or onwebkittransitionend
 	$inj += preg_match('/on(paste|pause|play|playing|progress|ratechange|reset|resize|scroll|select|search|seeked|seeking|show|stalled|start|submit|suspend)[a-z]*\s*=/i', $val);
 	$inj += preg_match('/on(timeupdate|touch|transition|toggle|unload|volumechange|waiting|wheel)[a-z]*\s*=/i', $val);
 	// More not into the previous list
@@ -217,7 +218,8 @@ function testSqlAndScriptInject($val, $type)
 	$inj += preg_match('/on(mouse|drag|key|load|touch|pointer|select|transition)[a-z]*\s*=/i', $tmpval); // onmousexxx can be set on img or any html tag like <img title='...' onmouseover=alert(1)>
 	$inj += preg_match('/on(abort|after|animation|auxclick|before|blur|bounce|cancel|canplay|canplaythrough|change|click|close|contextmenu|cuechange|copy|cut)[a-z]*\s*=/i', $tmpval);
 	$inj += preg_match('/on(dblclick|drop|durationchange|emptied|end|ended|error|focus|focusin|focusout|formdata|gotpointercapture|hashchange|input|invalid)[a-z]*\s*=/i', $tmpval);
-	$inj += preg_match('/on(lostpointercapture|offline|online|pagehide|pageshow)[a-z]*\s*=/i', $tmpval);
+	$inj += preg_match('/on(lostpointercapture|offline|online|page|slot)[a-z]*\s*=/i', $tmpval);	// 'page' also covers onpagehide, onpageshow, onpagereveal and onpageswap
+	$inj += preg_match('/on(webkit|moz|ms)[a-z]*\s*=/i', $tmpval);	// vendor prefixed events like onwebkitanimationiteration or onwebkittransitionend
 	$inj += preg_match('/on(paste|pause|play|playing|progress|ratechange|reset|resize|scroll|search|seeked|seeking|show|stalled|start|submit|suspend)[a-z]*\s*=/i', $tmpval);
 	$inj += preg_match('/on(timeupdate|toggle|unload|volumechange|waiting|wheel)[a-z]*\s*=/i', $tmpval);
 	// More not into the previous list

@@ -9781,11 +9781,26 @@ function dol_htmlwithnojs($stringtoencode, $nouseofiframesandbox = 0, $check = '
 			$out = preg_replace('/on(mouse|drag|key|load|touch|pointer|select|transition)[a-z]*\s*=/i', '', $out); // onmousexxx can be set on img or any html tag like <img title='...' onmouseover=alert(1)>
 			$out = preg_replace('/on(abort|after|animation|auxclick|before|blur|cancel|canplay|canplaythrough|change|click|close|command|contentvisibility|context|cuechange|copy|cut)[a-z]*\s*=/i', '', $out);
 			$out = preg_replace('/on(dblclick|drop|durationchange|emptied|end|ended|error|focus(in|out)?|formdata|gotpointercapture|hashchange|input|invalid)[a-z]*\s*=/i', '', $out);
-			$out = preg_replace('/on(lost|offline|online|message|pagehide|pageshow)[a-z]*\s*=/i', '', $out);
+			$out = preg_replace('/on(lost|offline|online|message|page|slot)[a-z]*\s*=/i', '', $out);	// 'page' also covers onpagehide, onpageshow, onpagereveal and onpageswap
+			$out = preg_replace('/on(webkit|moz|ms)[a-z]*\s*=/i', '', $out);		// vendor prefixed events like onwebkitanimationiteration or onwebkittransitionend
 			$out = preg_replace('/on(paste|pause|play|playing|progress|ratechange|rejectionn|reset|resize|scroll|search|security|seeked|seeking|show|stalled|start|submit|suspend)[a-z]*\s*=/i', '', $out);
 			$out = preg_replace('/on(timeupdate|toggle|unhandled|unload|volumechange|waiting|wheel)[a-z]*\s*=/i', '', $out);
 			// More not into the previous list
 			$out = preg_replace('/on(repeat|begin|finish|beforeinput)[a-z]*\s*=/i', '', $out);
+			// A HTML parser starts a new attribute not only after a space but also just after the quote that closes
+			// the previous attribute value (and after a "/"), so <div id='x'onxxx='...'> does define an event handler.
+			// This is done inside html tags only, so a text or an url like "https://host/onboarding=1" is not altered.
+			$out = preg_replace_callback(
+				'/<[^<>]*>/',
+				/**
+				 * @param string[] $reg
+				 * @return string
+				 */
+				static function ($reg) {
+					return preg_replace('/[\'"\/]on[a-z]+\s*=/i', ' ', $reg[0]);
+				},
+				$out
+			) ?? $out;
 			// Add also a generic removal of any onxxx= attribute
 			$out = preg_replace('/\son[a-z]+\s*=/i', ' ', $out);
 		} while ($oldstringtoclean != $out);
