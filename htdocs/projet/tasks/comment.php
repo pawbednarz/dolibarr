@@ -68,9 +68,6 @@ $projectstatic = new Project($db);
 // fetch optionals attributes and labels
 $extrafields->fetch_name_optionals_label($object->table_element);
 
-// include comment actions
-include DOL_DOCUMENT_ROOT.'/core/actions_comments.inc.php';
-
 // Security check
 $socid = 0;
 // Retrieve First Task ID of Project if withprojet is on to allow project prev next to work
@@ -92,12 +89,16 @@ if ($id > 0 || $ref) {
 
 restrictedArea($user, 'projet', $object->fk_project, 'projet&project');
 
+$permissiontocomment = $user->hasRight('projet', 'creer');	// Used by the include of actions_comments.inc.php
+
 
 /*
  * Actions
  */
 
-// None
+// include comment actions. Must stay below restrictedArea(): the handlers write to the database and
+// end with header()+exit, so anything included above it is never authorized at all.
+include DOL_DOCUMENT_ROOT.'/core/actions_comments.inc.php';
 
 
 /*

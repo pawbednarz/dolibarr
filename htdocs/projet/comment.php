@@ -84,6 +84,13 @@ if ($id > 0 || !empty($ref)) {
 	}
 }
 
+// Security check on the project itself. hasRight('projet', 'lire') above is the module right only:
+// without this call, checkUserAccessToObject() never runs its project rules, so a private project
+// the user is not assigned to is readable and commentable here. Same call as projet/card.php.
+restrictedArea($user, 'projet', $object->id, 'projet&project');
+
+$permissiontocomment = $user->hasRight('projet', 'creer');	// Used by the include of actions_comments.inc.php
+
 // include comment actions
 include DOL_DOCUMENT_ROOT.'/core/actions_comments.inc.php';
 

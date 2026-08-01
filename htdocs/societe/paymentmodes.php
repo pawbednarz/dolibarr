@@ -95,7 +95,27 @@ $permissiontoadd = $user->hasRight('societe', 'creer'); // Used by the include o
 $permissiontoaddupdatepaymentinformation = $user->hasRight('societe', 'thirdparty_paymentinformation', 'write');
 
 // Check permission on company
-$result = restrictedArea($user, 'societe', '', '');
+$result = restrictedArea($user, 'societe', $object->id, '&societe');
+
+// Check permission on the bank account / payment mode itself.
+// restrictedArea() above authorizes $socid only. $id and $ribid are read from the request and are
+// used to fetch, update and delete rows of llx_societe_rib, but CompanyBankAccount::fetch() and
+// CompanyPaymentMode::fetch() select on the row id alone, with no fk_soc and no entity. Without the
+// test below, any id designates any third party's bank account, in any entity.
+foreach (array('id' => $id, 'ribid' => $ribid) as $paramname => $paramvalue) {
+	if ($paramvalue > 0) {
+		$sql = "SELECT sr.rowid FROM ".MAIN_DB_PREFIX."societe_rib as sr";
+		$sql .= " INNER JOIN ".MAIN_DB_PREFIX."societe as s ON s.rowid = sr.fk_soc";
+		$sql .= " WHERE sr.rowid = ".((int) $paramvalue);
+		$sql .= " AND sr.fk_soc = ".((int) $object->id);
+		$sql .= " AND s.entity IN (".getEntity('societe').")";
+		$resql = $db->query($sql);
+		if (!$resql || !$db->num_rows($resql)) {
+			accessforbidden("The payment information ".$paramname."=".((int) $paramvalue)." does not belong to the third party socid=".((int) $object->id));
+		}
+		$db->free($resql);
+	}
+}
 
 $stripe = null;  // Stripe object
 $stripeacc = null; // Stripe Account
