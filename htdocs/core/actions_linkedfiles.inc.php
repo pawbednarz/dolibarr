@@ -287,7 +287,9 @@ if ($action == 'confirm_deletefile' && $confirm == 'yes' && !empty($permissionto
 					$publicmediasdirwithslash .= '/';
 				}
 
-				if (strpos($upload_dir, $publicmediasdirwithslash) !== 0) {	// We never add .noexe on files into media directory
+				// Note: the same rule than the one of dol_move_uploaded_file() must be used here, otherwise renaming a
+				// file is enough to get an executable file into a directory where uploading one is refused.
+				if (strpos($upload_dir, $publicmediasdirwithslash) !== 0 || !getDolGlobalInt("MAIN_DOCUMENT_DISABLE_NOEXE_IN_MEDIAS_DIR")) {	// We never add .noexe on files into media directory
 					$filenameto .= '.noexe';
 				}
 			}

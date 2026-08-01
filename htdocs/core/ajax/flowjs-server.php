@@ -60,8 +60,8 @@ $action = GETPOST('action', 'aZ09');
 $module = GETPOST('module', 'aZ09arobase');
 $uploaddirname = dol_sanitizeFileName(GETPOST('uploaddirname', 'alpha'));
 
-$flowFilename = GETPOST('flowFilename', 'alpha');
-$flowIdentifier = GETPOST('flowIdentifier', 'alpha');
+$flowFilename = dol_sanitizeFileName(GETPOST('flowFilename', 'alpha'));
+$flowIdentifier = dol_sanitizeFileName(GETPOST('flowIdentifier', 'alpha'));
 $flowChunkNumber = GETPOST('flowChunkNumber', 'alpha');
 $flowChunkSize = GETPOST('flowChunkSize', 'alpha');
 $flowTotalSize = GETPOST('flowTotalSize', 'alpha');
@@ -74,6 +74,31 @@ if (!$result) {
 
 if ($action != 'upload') {
 	httponly_accessforbidden("Param action must be 'upload'");
+}
+
+if ($flowFilename === '') {
+	httponly_accessforbidden("Param flowFilename is required");
+}
+
+// Security:
+// The final file is assembled by createFileFromChunks() with a raw fopen(), so it does not go through
+// dol_add_file_process() nor dol_move_uploaded_file(). Their protections must be applied here on the name of the
+// file that will be created, otherwise this page can be used to upload any file, including an executable one.
+$defaultexecutableextensions = implode(',', getExecutableContent());
+$fileextensionrestriction = getDolGlobalString("MAIN_FILE_EXTENSION_UPLOAD_RESTRICTION", $defaultexecutableextensions);
+if (!empty($fileextensionrestriction)) {
+	$arrayofregexextension = explode(",", $fileextensionrestriction);
+	foreach ($arrayofregexextension as $fileextension) {
+		if (preg_match('/\.'.preg_quote(trim($fileextension), '/').'$/i', $flowFilename)) {
+			httponly_accessforbidden("Upload of a file with the extension ".trim($fileextension)." is not allowed");
+		}
+	}
+}
+
+// Name of the final file. Like dol_move_uploaded_file() does, we add a .noexe on files with an executable content.
+$flowFinalFilename = $flowFilename;
+if (isAFileWithExecutableContent($flowFinalFilename) && !getDolGlobalString('MAIN_DOCUMENT_IS_OUTSIDE_WEBROOT_SO_NOEXE_NOT_REQUIRED')) {
+	$flowFinalFilename .= '.noexe';
 }
 
 if (!empty($conf->$module->dir_temp)) {
@@ -116,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 	}
 } else {
 	// loop through files and move the chunks to a temporarily created directory
-	if (file_exists($upload_dir.'/'.$flowFilename)) {
+	if (file_exists($upload_dir.'/'.$flowFinalFilename)) {
 		echo json_encode('File '.$flowIdentifier.' was already uploaded');
 		header("HTTP/1.0 200 Ok");
 		die();
@@ -142,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 				dol_syslog('Error saving (move_uploaded_file) chunk '.$flowChunkNumber.' for file '.$flowFilename);
 			} else {
 				// check if all the parts present, and create the final destination file
-				$result = createFileFromChunks($temp_dir, $upload_dir, $flowFilename, $flowChunkSize, $flowTotalSize);
+				$result = createFileFromChunks($temp_dir, $upload_dir, $flowFilename, $flowChunkSize, $flowTotalSize, $flowFinalFilename);
 			}
 		}
 	}
@@ -159,13 +184,17 @@ if ($result) {
  *
  * @param string    $temp_dir 		the temporary directory holding all the parts of the file
  * @param string    $upload_dir 	the temporary directory to create file
- * @param string    $fileName 		the original file name
+ * @param string    $fileName 		the original file name (used to find the parts)
  * @param string    $chunkSize 		each chunk size (in bytes)
  * @param string    $totalSize 		original file size (in bytes)
+ * @param string    $finalFileName	the sanitized name of the file to create. Same as $fileName if not provided.
  * @return bool     				true if Ok false else
  */
-function createFileFromChunks($temp_dir, $upload_dir, $fileName, $chunkSize, $totalSize)
+function createFileFromChunks($temp_dir, $upload_dir, $fileName, $chunkSize, $totalSize, $finalFileName = '')
 {
+	if ($finalFileName === '') {
+		$finalFileName = $fileName;
+	}
 	dol_syslog(__FUNCTION__, LOG_DEBUG);
 
 	// count all the parts of this file
@@ -181,7 +210,7 @@ function createFileFromChunks($temp_dir, $upload_dir, $fileName, $chunkSize, $to
 	// the size of the last part is between chunkSize and 2*$chunkSize
 	if ($total_files * (float) $chunkSize >=  ((float) $totalSize - (float) $chunkSize + 1)) {
 		// create the final destination file
-		if (($fp = fopen($upload_dir.'/'.$fileName, 'w')) !== false) {
+		if (($fp = fopen($upload_dir.'/'.$finalFileName, 'w')) !== false) {
 			for ($i = 1; $i <= $total_files; $i++) {
 				fwrite($fp, file_get_contents($temp_dir.'/'.$fileName.'.part'.$i));
 				dol_syslog('writing chunk '.$i);
