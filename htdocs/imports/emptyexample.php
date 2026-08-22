@@ -103,8 +103,18 @@ if (empty($datatoimport)) {
 
 $filename = $langs->transnoentitiesnoconv("ExampleOfImportFile").'_'.$datatoimport.'.'.$format;
 
+$user->loadRights();
+
 $objimport = new Import($db);
 $objimport->load_arrays($user, $datatoimport);
+
+// Security check. The example file describes the fields of the import profile, so it must be reserved to the users
+// allowed to use this import profile (see Import::load_arrays()).
+$keyofdatatoimport = is_array($objimport->array_import_code) ? array_search($datatoimport, $objimport->array_import_code, true) : false;
+if ($keyofdatatoimport === false || empty($objimport->array_import_perms[$keyofdatatoimport])) {
+	accessforbidden();
+}
+
 // Load arrays from descriptor module
 $fieldstarget = $objimport->array_import_fields[0];
 $valuestarget = $objimport->array_import_examplevalues[0];

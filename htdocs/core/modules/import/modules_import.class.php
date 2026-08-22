@@ -1018,6 +1018,31 @@ class ModeleImports
 
 		//dol_syslog("import_csv.modules maxfields=".$maxfields." importid=".$importid);
 
+		// Security: $array_match_file_to_database is the matching between the columns of the file and the target
+		// fields of the database. It is built from data stored into the session of the user (see the actions
+		// 'saveselectorder' and 'select_model' of imports/import.php), so it must never be trusted to target any
+		// column of the tables of the import profile: only the fields declared as importable by the profile are
+		// allowed. Without this, a user could target a column that the profile hides on purpose because updating it
+		// is restricted by the card of the object (for example llx_user.admin, llx_user.pass_crypted, ...).
+		$arrayoffieldsallowed = array();
+		if (!empty($objimport->array_import_fields[0]) && is_array($objimport->array_import_fields[0])) {
+			$arrayoffieldsallowed = $objimport->array_import_fields[0];
+		}
+		if (!empty($objimport->array_import_fieldshidden[0]) && is_array($objimport->array_import_fieldshidden[0])) {
+			$arrayoffieldsallowed += $objimport->array_import_fieldshidden[0];
+		}
+		foreach ($array_match_file_to_database as $tmptargetfield) {
+			if (!isset($arrayoffieldsallowed[$tmptargetfield])) {
+				dol_syslog("Try to import into the field '".$tmptargetfield."' that is not a field allowed by the import profile", LOG_WARNING);
+				$this->errors[$error]['lib'] = $langs->trans('ErrorImportFieldNotAllowed', $tmptargetfield);
+				$this->errors[$error]['type'] = 'NOTALLOWED';
+				$error++;
+			}
+		}
+		if ($error) {
+			return -1;
+		}
+
 		//var_dump($array_match_file_to_database);
 		//var_dump($arrayrecord); exit;
 		$array_match_database_to_file = array_flip($array_match_file_to_database);

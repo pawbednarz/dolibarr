@@ -42,7 +42,7 @@ class modUser extends DolibarrModules
 	 */
 	public function __construct($db)
 	{
-		global $conf;
+		global $conf, $user;
 
 		$this->db = $db;
 		$this->numero = 0;
@@ -318,20 +318,31 @@ class modUser extends DolibarrModules
 		$this->import_label[$r] = 'ImportDataset_user_1';
 		$this->import_icon[$r] = 'user';
 		$this->import_entities_array[$r] = array(); // We define here only fields that use another icon that the one defined into import_icon
+		// An import writes directly into the table, so it bypasses the permission checks done by the card of the object.
+		// The permission to create/modify a user is therefore also required (see Import::load_arrays()).
+		$this->import_permission[$r] = array(array("user", "user", "creer"));
 		$this->import_tables_array[$r] = array('u' => MAIN_DB_PREFIX.'user', 'extra' => MAIN_DB_PREFIX.'user_extrafields'); // List of tables to insert into (insert done in same order)
 		$this->import_fields_array[$r] = array(
 			'u.login' => "Login*", 'u.lastname' => "Name*", 'u.firstname' => "Firstname", 'u.employee' => "Employee*", 'u.job' => "PostOrFunction", 'u.gender' => "Gender",
 			'u.accountancy_code' => "UserAccountancyCode",
-			'u.pass_crypted' => "Password", 'u.admin' => "Administrator", 'u.fk_soc' => "Company*", 'u.address' => "Address", 'u.zip' => "Zip", 'u.town' => "Town",
+			'u.fk_soc' => "Company*", 'u.address' => "Address", 'u.zip' => "Zip", 'u.town' => "Town",
 			'u.fk_state' => "StateId", 'u.fk_country' => "CountryCode",
 			'u.office_phone' => "Phone", 'u.user_mobile' => "Mobile", 'u.office_fax' => "Fax",
 			'u.email' => "Email", 'u.note_public' => "NotePublic", 'u.note_private' => "NotePrivate", 'u.signature' => 'Signature',
 			'u.fk_user' => 'HierarchicalResponsible', 'u.thm' => 'THM', 'u.tjm' => 'TJM', 'u.weeklyhours' => 'WeeklyHours',
-			'u.dateemployment' => 'DateEmploymentStart', 'u.dateemploymentend' => 'DateEmploymentEnd', 'u.salary' => 'Salary', 'u.color' => 'Color', 'u.api_key' => 'ApiKey',
+			'u.dateemployment' => 'DateEmploymentStart', 'u.dateemploymentend' => 'DateEmploymentEnd', 'u.salary' => 'Salary', 'u.color' => 'Color',
 			'u.birth' => 'DateOfBirth',
 			'u.datec' => "DateCreation",
 			'u.statut' => 'Status'
 		);
+		// The columns 'admin', 'pass_crypted' and 'api_key' give the full control of an account, and User::update() and
+		// the user card only allow an admin user to set them. So they can be imported by an admin user only, otherwise
+		// a user allowed to manage users could grant himself the admin flag or take over an existing admin account.
+		if (!empty($user->admin)) {
+			$this->import_fields_array[$r]['u.pass_crypted'] = "Password";
+			$this->import_fields_array[$r]['u.admin'] = "Administrator";
+			$this->import_fields_array[$r]['u.api_key'] = 'ApiKey';
+		}
 		// Add extra fields
 		$sql = "SELECT name, label, fieldrequired FROM ".MAIN_DB_PREFIX."extrafields WHERE type <> 'separate' AND elementtype = 'user' AND entity IN (0,".((int) $conf->entity).")";
 		$resql = $this->db->query($sql);

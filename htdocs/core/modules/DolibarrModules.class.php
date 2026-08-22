@@ -342,6 +342,17 @@ class DolibarrModules // Can not be abstract, because we need to instantiate it 
 	 */
 	public $import_icon;
 	/**
+	 * @var array<array<array{string,string}|array{string,string,string}>>
+	 *
+	 * List of permissions required, in addition to the 'import->run' permission, to be allowed to use the import
+	 * profile. Same syntax than $export_permission.
+	 * Example: $this->import_permission[$r] = array(array("user", "user", "creer"));
+	 * A profile that writes into a table with sensitive columns (rights, admin flag, password, api key, ...) MUST
+	 * declare here the permission that is required to update the same data from the card of the object, otherwise
+	 * any user with the 'import->run' permission would be able to bypass it.
+	 */
+	public $import_permission;
+	/**
 	 * @var array<array<string,string>>
 	 */
 	public $import_entities_array;

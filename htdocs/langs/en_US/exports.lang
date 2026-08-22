@@ -94,6 +94,7 @@ RunImportFile=Import Data
 NowClickToRunTheImport=Check the results of the import simulation. Correct any errors and re-test.<br>When the simulation reports no errors you may proceed to import the data into the database.
 DataLoadedWithId=The imported data will have an additional field in each database table with this import id: <b>%s</b>, to allow it to be searchable in the case of investigating a problem related to this import.
 ErrorMissingMandatoryValue=Mandatory data is empty in the source file in column <b>%s</b>.
+ErrorImportFieldNotAllowed=The field <b>%s</b> is not a field allowed by this import profile.
 TooMuchErrors=There are still <b>%s</b> other source lines with errors but output has been limited.
 TooMuchWarnings=There are still <b>%s</b> other source lines with warnings but output has been limited.
 EmptyLine=Empty line (will be discarded)

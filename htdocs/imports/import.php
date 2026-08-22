@@ -171,6 +171,19 @@ if (!in_array($importtriggermode, array('strict_line', 'fast_bulk'), true)) {
 $objimport = new Import($db);
 $objimport->load_arrays($user, ($step == 1 ? '' : $datatoimport));
 
+// Security check on the import profile itself.
+// The 'import->run' permission is not enough to use any import profile: an import writes directly into the tables
+// of a module, bypassing the permission checks done by the card of the object. So the permissions declared by the
+// profile (property $import_permission of the module descriptor) are also required. Without this, a user with only
+// the 'import->run' permission could, for example, insert or update a record of llx_user with the column 'admin'
+// set to 1 and become an administrator.
+if ($datatoimport) {
+	$keyofdatatoimport = is_array($objimport->array_import_code) ? array_search($datatoimport, $objimport->array_import_code, true) : false;
+	if ($keyofdatatoimport === false || empty($objimport->array_import_perms[$keyofdatatoimport])) {
+		accessforbidden($langs->trans("NotEnoughPermissions").' (datatoimport='.dol_escape_htmltag($datatoimport).')');
+	}
+}
+
 if (empty($updatekeys) && !empty($objimport->array_import_preselected_updatekeys[0])) {
 	$updatekeys = $objimport->array_import_preselected_updatekeys[0];
 }
@@ -308,6 +321,8 @@ if ($action == 'saveselectorder' && $user->hasRight('import', 'run')) {
 	$serialized_array_match_file_to_database = '';
 	dol_syslog("selectorder=".GETPOST('selectorder'), LOG_DEBUG);
 	$selectorder = explode(",", GETPOST('selectorder'));
+	// Note: the matching saved here is only stored into the session. The fact that a target field is really a field
+	// allowed by the import profile is checked at import time, into ModeleImports::commonImportInsert().
 	$fieldtarget = $fieldstarget = $objimport->array_import_fields[0];
 	foreach ($selectorder as $key => $code) {
 		$serialized_array_match_file_to_database .= $key.'='.$code;

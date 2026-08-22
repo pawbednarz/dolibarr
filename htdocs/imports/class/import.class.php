@@ -62,7 +62,7 @@ class Import
 	public $array_import_types;
 
 	/**
-	 * @var int[]
+	 * @var bool[]	For each import profile, true if the user has the permissions required to use it
 	 */
 	public $array_import_perms;
 
@@ -240,20 +240,30 @@ class Import
 							continue;
 						}
 
-						// Test if permissions are ok
-						/*$perm=$module->import_permission[$r][0];
-						//print_r("$perm[0]-$perm[1]-$perm[2]<br>");
-						if ($perm[2])
-						{
-						$bool=$user->rights->{$perm[0]}->{$perm[1]}->{$perm[2]};
+						// Test if permissions are ok.
+						// The 'import->run' permission is always required, but it is not enough: an import profile
+						// writes directly into the tables of a module, so the permissions required to update the same
+						// data from the card of the object must also be owned by the user. If not, a user with only
+						// the 'import->run' permission could, for example, insert a record into llx_user with the
+						// column 'admin' set to 1 and become an administrator.
+						$bool = (bool) $user->hasRight('import', 'run');
+						if ($bool && isset($module->import_permission) && !empty($module->import_permission[$r])) {
+							foreach ($module->import_permission[$r] as $perm) {
+								if (!empty($perm[2])) {
+									$bool = isset($user->rights->{$perm[0]}->{$perm[1]}->{$perm[2]}) ? (bool) $user->rights->{$perm[0]}->{$perm[1]}->{$perm[2]} : false;
+								} elseif (!empty($perm[1])) {
+									$bool = isset($user->rights->{$perm[0]}->{$perm[1]}) ? (bool) $user->rights->{$perm[0]}->{$perm[1]} : false;
+								} else {
+									$bool = false;
+								}
+								if ($perm[0] == 'user' && $user->admin) {
+									$bool = true;
+								}
+								if (!$bool) {
+									break;
+								}
+							}
 						}
-						else
-						{
-						$bool=$user->rights->{$perm[0]}->{$perm[1]};
-						}
-						if ($perm[0]=='user' && $user->admin) $bool=true;
-						//print $bool." $perm[0]"."<br>";
-						*/
 
 						// Load lang file
 						$langtoload = $module->getLangFilesArray();
@@ -264,7 +274,7 @@ class Import
 						}
 
 						// Permission
-						$this->array_import_perms[$i] = $user->hasRight('import', 'run');
+						$this->array_import_perms[$i] = $bool;
 						// Icon
 						$this->array_import_icon[$i] = (isset($module->import_icon[$r]) ? $module->import_icon[$r] : $module->picto);
 						// Code of dataset export
